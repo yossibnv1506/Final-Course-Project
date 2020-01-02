@@ -1,0 +1,38 @@
+pipeline {
+    options {
+        timeout(time: 30, unit: 'MINUTES')
+    }
+    agent { label 'master' }
+    stages {
+        stage('Checkout Version') {
+            steps {
+                script {
+                    dir('Deployment') {
+                        deleteDir()
+                        checkout([$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'gitcred', url: "https://github.com/yossibnv1506/INT_DB_CD.git"]]])
+
+                    }
+                }
+            }
+        }
+        stage('Deployment on Kubernetes Cluster '){
+            steps{
+                script{
+                    dir('Deployment'){
+                        sh  "
+                               export PATH=/bin/bash:$PATH
+                               export KUBECONFIG=/var/jenkins_home/admin.conf
+                               kubectl apply -f db.yaml
+                                kubectl patch deployment $param-dep-name -p '{"spec":{"progressDeadlineSeconds":10}}'
+                                if ! kubectl rollout status deployment $param-dep-name;
+                                    then
+                                        kubectl rollout undo deployment $param-dep-name 
+                                fi
+                            "
+                    }
+                }
+            }
+        }
+    }
+
+}
