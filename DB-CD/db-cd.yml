@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db-cd-deploy
+spec:
+  selector:
+    matchLabels:
+      app: intdb-app
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: dbwithcd-app
+    spec:
+      containers:
+      - name: intdbcd
+        image: yossibnv/repo:db-cd
+        ports:
+        - containerPort: 9000
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 27017
