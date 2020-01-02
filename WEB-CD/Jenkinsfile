@@ -1,0 +1,60 @@
+import groovy.json.JsonSlurper
+import hudson.model.*
+def Current_version
+def json_path
+def deploy = 'webapi-cd'
+def myrepo = 'yossibnv1506/myrepo'
+
+
+pipeline {
+
+    options {
+        timeout(time: 30, unit: 'MINUTES')
+    }
+    agent { label 'master' }
+    stages {
+        stage('Checkout') {
+            steps {
+                script {
+                    dir('Release') {
+                        deleteDir()
+                        checkout([$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'git-cred', url: "https://github.com/lidorabo/Release.git"]]])
+                        json_path = sh(script: "pwd", returnStdout: true).trim() + '/' + 'dev' + '.json'
+                        Current_version = Return_Json_From_File("$path_json_file").Services.INT_WEB
+
+                    }
+                    dir('Deployment') {
+                        deleteDir()
+                        checkout([$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'git-cred', url: "https://github.com/yossibnv1506/WEB-CD.git"]]])
+
+                    }
+
+
+                }
+            }
+        }
+        stage('Deployment on Kubernetes Cluster'){
+            steps{
+                script{
+                    dir('Deployment'){
+                        sh "sed -i 's/{{version}}/$Current_version/' web-api.yaml"
+                        sh """
+                               export PATH=/bin/bash:$PATH
+                               export KUBECONFIG=/var/jenkins_home/admin.conf
+                               kubectl apply -f webapi.yaml
+                                kubectl patch deployment $deploy -p '{"spec":{"progressDeadlineSeconds":10}}'
+                                if ! kubectl rollout status deployment $deploy;
+                                    then
+                                        kubectl rollout undo deployment $deploy
+                                fi
+                            """
+                    }
+                }
+            }
+        }
+    }
+
+}
+   def Return_Json_From_File(file_name){
+    return new JsonSlurper().parse(new File(file_name))
+}
