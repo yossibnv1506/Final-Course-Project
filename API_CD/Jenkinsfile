@@ -43,7 +43,7 @@ pipeline {
                         sh """
                                export PATH=/bin/bash:$PATH
                                export KUBECONFIG=/var/jenkins_home/admin.conf
-                               kubectl apply -f intapi.yaml
+                               kubectl apply -f  api.yaml
                                 kubectl patch deployment $deployment_name -p '{"spec":{"progressDeadlineSeconds":10}}'
                                 if ! kubectl rollout status deployment $deployment_name;
                                     then
