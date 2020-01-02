@@ -2,7 +2,7 @@ import groovy.json.JsonSlurper
 import hudson.model.*
 def Current_version
 def NextVersion
-def dev_rep_docker = 'lidorabo/docker_repo'
+def reo = 'yossibnv1506/docker_repo'
 def colons = ':'
 def module = 'intapi'
 def underscore = '_'
